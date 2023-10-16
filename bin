@@ -1,0 +1,56 @@
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public void run() {
+    // ... (previous code)
+
+    // Build and start the Kafka Streams application.
+    KafkaStreams streams = new KafkaStreams(builder.build(), config);
+
+    // Create a ScheduledExecutorService to manage the KafkaStreams instance and timer.
+    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(2);
+
+    // Schedule a task to start the KafkaStreams instance.
+    executorService.schedule(() -> {
+        streams.start();
+        // You can add a sleep or delay here to ensure that the replication has started before checking.
+    }, 0, TimeUnit.SECONDS);
+
+    // Schedule a task to shutdown the Kafka Streams application after 5 minutes.
+    executorService.schedule(() -> {
+        System.out.println("Shutting down the Kafka Streams application after 5 minutes.");
+        streams.close();
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(30, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+        }
+    }, 5, TimeUnit.MINUTES);
+
+    // Add a shutdown hook to gracefully close the Streams application.
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        streams.close();
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(30, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+        }
+    }));
+
+    // Add a message processing callback to track replicated messages.
+    sourceStream.foreach((key, value) -> {
+        processedMessages.incrementAndGet();
+        System.out.println("Processed messages: " + processedMessages.get());
+        if (processedMessages.get() >= totalMessages) {
+            System.out.println("All messages have been replicated.");
+            // You can take further action when all messages are replicated.
+        }
+    });
+}
