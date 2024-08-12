@@ -1,1 +1,1 @@
-kubectl patch pod <pod-name> --type='json' -p='[{"op": "add", "path": "/spec/hostAliases", "value": [{"ip": "10.1.2.3", "hostnames": ["foo.remote", "bar.remote"]}, {"ip": "10.4.5.6", "hostnames": ["foo.remote", "baz.remote"]}]}]'
+
